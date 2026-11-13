@@ -109,32 +109,22 @@ st.info(
 )
 
 # -------------------------------------------------------------------
-# 3. 변수 선택
+# 3. 예측 변수 자동 설정
 # -------------------------------------------------------------------
-st.subheader("2. 예측에 사용할 변수 선택")
-st.write("체크한 변수만 모델의 입력값으로 사용합니다.")
+st.subheader("2. 예측 변수")
+st.write("체크박스 없이 데이터에 포함된 모든 예측 변수를 자동으로 사용합니다.")
 
-feature_options = {
-    "기준연도 사고건수": True,
-    "기준연도": True,
-    "직전 연도 증감": True,
-    "직전 연도 증감률": True,
-    "시도": False
-}
-
-col_a, col_b = st.columns(2)
-selected_features = []
-for i, (feature, default) in enumerate(feature_options.items()):
-    target_col = col_a if i % 2 == 0 else col_b
-    if target_col.checkbox(feature, value=default, key=f"feature_{i}"):
-        selected_features.append(feature)
-
-if not selected_features:
-    st.warning("예측에 사용할 변수를 하나 이상 선택해 주세요.")
-    st.stop()
+# 모든 독립변수를 자동으로 사용합니다.
+selected_features = [
+    "기준연도 사고건수",
+    "기준연도",
+    "직전 연도 증감",
+    "직전 연도 증감률",
+    "시도"
+]
 
 numeric_features = [f for f in selected_features if f != "시도"]
-categorical_features = ["시도"] if "시도" in selected_features else []
+categorical_features = ["시도"]
 
 # -------------------------------------------------------------------
 # 4. 모델 생성 및 도시 단위 평가
@@ -187,11 +177,10 @@ m3.metric("RMSE 평균 제곱근 오차", f"{rmse:,.1f}건")
 st.write(f"**학습에 사용한 시도 ({len(train_cities)}개):** " + ", ".join(train_cities))
 st.write(f"**평가에 사용한 시도 ({len(test_cities)}개):** " + ", ".join(test_cities))
 
-if "시도" in selected_features:
-    st.warning(
-        "시도 변수를 선택했지만, 평가는 학습에 포함되지 않은 도시로 진행합니다. "
-        "따라서 평가 데이터의 시도 범주는 학습 과정에서 처음 보는 값이며, One-Hot 인코딩에서 별도 효과가 없을 수 있습니다."
-    )
+st.info(
+    "시도도 예측 변수에 포함되어 있습니다. 다만 평가 단계에서는 학습에 사용하지 않은 시도가 테스트에 포함되므로, "
+    "처음 보는 시도 이름은 One-Hot 인코딩에서 별도의 학습 효과를 제공하지 않을 수 있습니다."
+)
 
 result_test = model_df.iloc[test_idx][["시도", "기준연도", "예측 대상 연도"]].copy()
 result_test["실제 증감"] = y_test.to_numpy()
