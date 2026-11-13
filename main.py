@@ -51,30 +51,31 @@ def load_data(file):
         return pd.read_csv(file, encoding="cp949")
 
 
-uploaded_file = st.file_uploader(
-    "교통사고 데이터 CSV 파일을 선택하세요.",
-    type=["csv"]
+
+uploaded_files = st.file_uploader(
+    "2023년~2025년 교통사고 CSV 파일을 선택하세요.",
+    type=["csv"],
+    accept_multiple_files=True
 )
 
-try:
-    if uploaded_file is not None:
-        raw = load_data(uploaded_file)
-        data_source = "업로드한 CSV 파일"
-    else:
+if uploaded_files:
+    data_list = []
+
+    for file in uploaded_files:
+        temp = load_data(file)
+        data_list.append(temp)
+
+    raw = pd.concat(data_list, ignore_index=True)
+    data_source = "업로드한 CSV 파일 3개"
+
+else:
+    try:
         raw = load_data("traffic.csv")
         data_source = "traffic.csv"
+    except FileNotFoundError:
+        st.warning("CSV 파일을 업로드해 주세요.")
+        st.stop()
 
-except FileNotFoundError:
-    st.error(
-        "traffic.csv 파일을 찾을 수 없습니다. "
-        "앱과 같은 폴더에 traffic.csv를 넣거나 "
-        "위에서 CSV 파일을 업로드하세요."
-    )
-    st.stop()
-
-except Exception as e:
-    st.error(f"데이터를 불러오는 중 오류가 발생했습니다: {e}")
-    st.stop()
 
 
 # ==========================================
