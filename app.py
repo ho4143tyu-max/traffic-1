@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
 st.set_page_config(
     page_title="시도별 교통사고 건수 예측",
@@ -334,4 +335,47 @@ st.markdown(
     - 예측 기간이 멀어질수록 실제 결과와 차이가 커질 수 있습니다.
     - 교통량, 인구, 도로 환경, 교통 정책 등 다른 요인은 모델에 포함되지 않았습니다.
     """
+)
+
+
+# -------------------------------------------------------------------
+# 6. 모델 성능 평가
+# -------------------------------------------------------------------
+st.subheader("6. 모델 성능 평가")
+st.write(
+    "모델이 과거 데이터에 얼마나 잘 맞는지 확인하기 위해 "
+    "2016~2022년 자료로 학습하고, 학습에 사용하지 않은 2023~2024년 자료를 예측해 평가합니다."
+)
+
+actual_values = []
+predicted_values = []
+
+for region in REGIONS:
+    region_data = data[data["시도"] == region].sort_values("연도")
+
+    train_data = region_data[region_data["연도"] <= 2022]
+    test_data = region_data[region_data["연도"].isin([2023, 2024])]
+
+    evaluation_model = LinearRegression()
+    evaluation_model.fit(train_data[["연도"]], train_data["교통사고 건수"])
+
+    test_predictions = evaluation_model.predict(test_data[["연도"]])
+
+    actual_values.extend(test_data["교통사고 건수"].astype(float).tolist())
+    predicted_values.extend(test_predictions.astype(float).tolist())
+
+mae = mean_absolute_error(actual_values, predicted_values)
+rmse = np.sqrt(mean_squared_error(actual_values, predicted_values))
+r2 = r2_score(actual_values, predicted_values)
+
+metric_col1, metric_col2, metric_col3 = st.columns(3)
+metric_col1.metric("평균 절대 오차 (MAE)", f"{mae:,.1f}건")
+metric_col2.metric("평균 제곱근 오차 (RMSE)", f"{rmse:,.1f}건")
+metric_col3.metric("결정계수 (R²)", f"{r2:.3f}")
+
+st.caption(
+    "평가 기준: 2016~2022년 자료로 학습한 뒤 2023~2024년 자료를 예측한 결과입니다. "
+    "MAE와 RMSE는 낮을수록 오차가 작고, R²는 1에 가까울수록 설명력이 높습니다. "
+    "R²가 음수이면 실제값의 평균을 기준으로 예측하는 것보다 성능이 낮을 수 있습니다. "
+    "이 평가지표는 2027년 이후 예측값의 정확도를 보장하지 않습니다."
 )
